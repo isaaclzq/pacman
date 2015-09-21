@@ -34,6 +34,7 @@ Pacman agents (in searchAgents.py).
 import util
 import sys
 import copy
+import Queue
 
 class SearchProblem:
     """
@@ -112,6 +113,41 @@ def nullHeuristic(state, problem=None):
     goal in the provided SearchProblem.  This heuristic is trivial.
     """
     return 0
+        
+
+def DFS(problem, depth):
+    frontier = []
+    visited = []
+    solution = []
+    level = 0
+    frontier.append([problem.getStartState(), level, solution])
+    def getState(node):
+        return node[0]
+    def getDepth(node):
+        return node[1]
+    def getSolution(node):
+        return node[2]
+    while frontier:
+        node = frontier.pop()
+        curState = getState(node)
+        curLevel = getDepth(node)
+        curSol = getSolution(node)
+        if problem.goalTest(curState):
+            return curSol
+        else:
+            visited.append(curState)
+            avaAction = problem.getActions(curState)
+            frontSet = []
+            if frontier:
+                for front in frontier:
+                    frontSet.append(getState(front))
+            for action in avaAction:
+                tmpSol = list(curSol)
+                newState = problem.getResult(curState, action)
+                if (newState not in frontSet) and (newState not in visited) and curLevel+1 < depth:
+                    tmpSol.append(action)
+                    frontier.append([newState, curLevel+1, tmpSol])
+    return False
 
 def iterativeDeepeningSearch(problem):
     """
@@ -120,12 +156,37 @@ def iterativeDeepeningSearch(problem):
     Begin with a depth of 1 and increment depth by 1 at every step.
     """
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    for depth in range(1000):
+        sol = DFS(problem, depth)
+        if sol:
+            return sol
 
 def aStarSearch(problem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    frontier = Queue.PriorityQueue()
+    solution = []
+    node = (heuristic(problem.getStartState(), problem), problem.getStartState(), solution)
+    frontier.put(node)
+    visited = []
+    while not frontier.empty():
+        node = frontier.get()
+        curState = node[1]
+        curH = node[0]
+        curSol = node[2]
+        if problem.goalTest(curState):
+            return curSol
+        else:
+            visited.append(curState)
+            avaAction = problem.getActions(curState)
+            for action in avaAction:
+                tmpSol = list(curSol)
+                newState = problem.getResult(curState, action)
+                if newState not in visited:
+                    tmpSol.append(action)
+                    frontier.put((heuristic(newState, problem), newState, tmpSol))
+    return False
+
 
 # Abbreviations
 bfs = breadthFirstSearch

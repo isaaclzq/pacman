@@ -144,10 +144,50 @@ def DFS(problem, depth):
             for action in avaAction:
                 tmpSol = list(curSol)
                 newState = problem.getResult(curState, action)
-                if (newState not in frontSet) and (newState not in visited) and curLevel+1 < depth:
+                if (newState not in frontSet) and (newState not in visited) and curLevel+1 <= depth:
                     tmpSol.append(action)
                     frontier.append([newState, curLevel+1, tmpSol])
     return False
+
+def getState(node):
+    return node[0]
+def getDepth(node):
+    return node[1]
+def getSolution(node):
+    return node[2]
+def getMove(node):
+    return node[3]
+
+def depth_limited_search(problem, depth):
+    frontier, visited, solution, level, move = [], [], [], 1, 0
+    frontier.append([problem.getStartState(), level, solution, move])
+    while frontier:
+        node = frontier.pop()
+        curState, curLevel, curSol, curMove = getState(node), getDepth(node), getSolution(node), getMove(node)
+        if curMove == 0:
+            newState = curState
+        else:
+            newState = problem.getResult(curState, curMove)
+            if problem.goalTest(newState):
+                curSol.append(curMove)
+                return curSol[1:]
+        avaAction = problem.getActions(newState)
+        visited.append(newState)
+        frontSet = []
+        if frontier:
+            for front in frontier:
+                frontSet.append(problem.getResult(getState(front), getMove(front)))
+        for action in avaAction:
+            tmpSol = list(curSol)
+            tmpSol.append(curMove)
+            if problem.goalTest(problem.getResult(newState, action)):
+                curSol.append(curMove)
+                curSol.append(action)
+                return curSol[1:]
+            if (problem.getResult(newState, action) not in frontSet) and (problem.getResult(newState, action) not in visited) and curLevel < depth:
+                frontier.append([newState, curLevel+1, tmpSol, action])
+    return False
+
 
 def iterativeDeepeningSearch(problem):
     """
@@ -156,8 +196,8 @@ def iterativeDeepeningSearch(problem):
     Begin with a depth of 1 and increment depth by 1 at every step.
     """
     "*** YOUR CODE HERE ***"
-    for depth in range(1000):
-        sol = DFS(problem, depth)
+    for depth in range(1000)[1:]:
+        sol = depth_limited_search(problem, depth)
         if sol:
             return sol
 
@@ -166,7 +206,8 @@ def aStarSearch(problem, heuristic=nullHeuristic):
     "*** YOUR CODE HERE ***"
     frontier = Queue.PriorityQueue()
     solution = []
-    node = (heuristic(problem.getStartState(), problem), problem.getStartState(), solution)
+    move = 0
+    node = (heuristic(problem.getStartState(), problem), problem.getStartState(), solution, move)
     frontier.put(node)
     visited = []
     while not frontier.empty():

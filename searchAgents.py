@@ -55,6 +55,7 @@ import util
 import time
 import search
 import warnings
+import math
 
 class GoWestAgent(Agent):
     "An agent that goes West until it can't."
@@ -306,14 +307,16 @@ class CornersProblem(search.SearchProblem):
         space)
         """
         "*** YOUR CODE HERE ***"
-        return (self.startingPosition, set(self.corners), set(self.cornerVisited))
+        "return (self.startingPosition, set(self.corners), set(self.cornerVisited))"
+        return (self.startingPosition, list(self.corners))
 
     def goalTest(self, state):
         """
         Returns whether this search state is a goal state of the problem.
         """
         "*** YOUR CODE HERE ***"
-        if state[1] == state[2]:
+        
+        if not state[1]:
             return True
 
     def getActions(self, state):
@@ -349,11 +352,12 @@ class CornersProblem(search.SearchProblem):
         dx, dy = Actions.directionToVector(action)
         nextx, nexty = int(x + dx), int(y + dy)
         if (not self.walls[nextx][nexty]):
-            corner = set(state[1])
-            visited = set(state[2])
-            if (nextx, nexty) in corner:
-                visited.add((nextx, nexty))
-            return ((nextx, nexty), corner, visited)
+            corners = list(state[1])
+            newCorner = []
+            for corner in corners:
+                if corner != (nextx, nexty):
+                    newCorner.insert(0, corner)
+            return ((nextx, nexty), newCorner)
         else:
             warnings.warn("Warning: checking the result of an invalid state, action pair.")
             return state
@@ -397,12 +401,20 @@ def cornersHeuristic(state, problem):
     walls = problem.walls # These are the walls of the maze, as a Grid (game.py)
 
     "*** YOUR CODE HERE ***"
-    def Euclidean(location1, locaton2):
-        return math.sqrt(math.pow(locaton2[1]-locaton1[1],2) + math.pow(locaton2[0]-locaton1[0],2))
+    def Euclidean(location1, location2):
+        return math.pow(location2[1]-location1[1],2) + math.pow(location2[0]-location1[0],2)
     curState = state[0]
+    print (curState)
     curCorner = state[1]
     curVisited = state[2]
-    
+    h = []
+    for corner in curCorner:
+        if corner not in curVisited:
+            h.append(Euclidean(curState, corner))
+    if not h:
+        return 0
+    else:
+        return min(h)
 
 class AStarCornersAgent(SearchAgent):
     "A SearchAgent for FoodSearchProblem using A* and your foodHeuristic"

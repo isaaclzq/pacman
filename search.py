@@ -30,11 +30,11 @@
 In search.py, you will implement generic search algorithms which are called by
 Pacman agents (in searchAgents.py).
 """
-
+from collections import deque
 import util
 import sys
 import copy
-import Queue
+import heapq
 
 class SearchProblem:
     """
@@ -105,65 +105,11 @@ def breadthFirstSearch(problem):
     You are not required to implement this, but you may find it useful for Q5.
     """
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
-
-def nullHeuristic(state, problem=None):
-    """
-    A heuristic function estimates the cost from the current state to the nearest
-    goal in the provided SearchProblem.  This heuristic is trivial.
-    """
-    return 0
-        
-
-def DFS(problem, depth):
-    frontier = []
-    visited = []
-    solution = []
-    level = 0
-    frontier.append([problem.getStartState(), level, solution])
-    def getState(node):
-        return node[0]
-    def getDepth(node):
-        return node[1]
-    def getSolution(node):
-        return node[2]
+    frontier, visited, solution, move = deque(), [], [], 0
+    frontier.append([problem.getStartState(), solution, move])
     while frontier:
-        node = frontier.pop()
-        curState = getState(node)
-        curLevel = getDepth(node)
-        curSol = getSolution(node)
-        if problem.goalTest(curState):
-            return curSol
-        else:
-            visited.append(curState)
-            avaAction = problem.getActions(curState)
-            frontSet = []
-            if frontier:
-                for front in frontier:
-                    frontSet.append(getState(front))
-            for action in avaAction:
-                tmpSol = list(curSol)
-                newState = problem.getResult(curState, action)
-                if (newState not in frontSet) and (newState not in visited) and curLevel+1 <= depth:
-                    tmpSol.append(action)
-                    frontier.append([newState, curLevel+1, tmpSol])
-    return False
-
-def getState(node):
-    return node[0]
-def getDepth(node):
-    return node[1]
-def getSolution(node):
-    return node[2]
-def getMove(node):
-    return node[3]
-
-def depth_limited_search(problem, depth):
-    frontier, visited, solution, level, move = [], [], [], 1, 0
-    frontier.append([problem.getStartState(), level, solution, move])
-    while frontier:
-        node = frontier.pop()
-        curState, curLevel, curSol, curMove = getState(node), getDepth(node), getSolution(node), getMove(node)
+        node = frontier.popleft()
+        curState, curSol, curMove = node[0], node[1], node[2]
         if curMove == 0:
             newState = curState
         else:
@@ -176,7 +122,46 @@ def depth_limited_search(problem, depth):
         frontSet = []
         if frontier:
             for front in frontier:
-                frontSet.append(problem.getResult(getState(front), getMove(front)))
+                frontSet.append(problem.getResult(front[0], front[2]))
+        for action in avaAction:
+            tmpSol = list(curSol)
+            tmpSol.append(curMove)
+            if problem.goalTest(problem.getResult(newState, action)):
+                curSol.append(curMove)
+                curSol.append(action)
+                return curSol[1:]
+            if (problem.getResult(newState, action) not in frontSet) and (problem.getResult(newState, action) not in visited):
+                frontier.append([newState, tmpSol, action])
+    return False
+
+def nullHeuristic(state, problem=None):
+    """
+    A heuristic function estimates the cost from the current state to the nearest
+    goal in the provided SearchProblem.  This heuristic is trivial.
+    """
+    return 0
+        
+
+
+def depth_limited_search(problem, depth):
+    frontier, visited, solution, level, move = [], [], [], 1, 0
+    frontier.append([problem.getStartState(), level, solution, move])
+    while frontier:
+        node = frontier.pop()
+        curState, curLevel, curSol, curMove = node[0], node[1], node[2], node[3]
+        if curMove == 0:
+            newState = curState
+        else:
+            newState = problem.getResult(curState, curMove)
+            if problem.goalTest(newState):
+                curSol.append(curMove)
+                return curSol[1:]
+        avaAction = problem.getActions(newState)
+        visited.append(newState)
+        frontSet = []
+        if frontier:
+            for front in frontier:
+                frontSet.append(problem.getResult(front[0], front[3]))
         for action in avaAction:
             tmpSol = list(curSol)
             tmpSol.append(curMove)
@@ -201,33 +186,36 @@ def iterativeDeepeningSearch(problem):
         if sol:
             return sol
 
+
+
 def aStarSearch(problem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
     "*** YOUR CODE HERE ***"
-    frontier = Queue.PriorityQueue()
-    solution = []
-    move = 0
-    node = (heuristic(problem.getStartState(), problem), problem.getStartState(), solution, move)
-    frontier.put(node)
-    visited = []
-    while not frontier.empty():
-        node = frontier.get()
-        curState = node[1]
-        curH = node[0]
-        curSol = node[2]
-        if problem.goalTest(curState):
-            return curSol
+    frontier, visited, solution, move, cost = [], [], [], None, 0
+    heapq.heappush(frontier, [heuristic(problem.getStartState(), problem), problem.getStartState(), solution, move, cost])
+    while frontier:
+        node = heapq.heappop(frontier)
+        curH, curState, curSol, curMove, curCost = node[0], node[1], node[2], node[3], node[4]
+        if curMove == None:
+            newState = curState
         else:
-            visited.append(curState)
-            avaAction = problem.getActions(curState)
-            for action in avaAction:
-                tmpSol = list(curSol)
-                newState = problem.getResult(curState, action)
-                if newState not in visited:
-                    tmpSol.append(action)
-                    frontier.put((heuristic(newState, problem), newState, tmpSol))
+            newState = problem.getResult(curState, curMove)
+            if newState in visited:
+                continue
+            if problem.goalTest(newState):
+                curSol.append(curMove)
+                return curSol[1:]
+        avaAction = problem.getActions(newState)
+        visited.append(newState)
+        for action in avaAction:
+            tmpSol = list(curSol)
+            tmpSol.append(curMove)  
+            if curMove != None:
+                tmpState = problem.getResult(newState, action)
+                heapq.heappush(frontier, [heuristic(problem.getResult(newState, action), problem)+curCost+problem.getCost(curState, curMove)+problem.getCost(newState, action), newState, tmpSol, action, curCost+problem.getCost(curState, curMove)])
+            else:
+                heapq.heappush(frontier, [heuristic(problem.getResult(newState, action), problem)+problem.getCost(newState, action), newState, tmpSol, action, curCost])
     return False
-
 
 # Abbreviations
 bfs = breadthFirstSearch

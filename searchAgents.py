@@ -298,7 +298,6 @@ class CornersProblem(search.SearchProblem):
         self._expanded = 0 # DO NOT CHANGE; Number of search nodes expanded
         # Please add any code here which you would like to use
         # in initializing the problem
-        self.cornerVisited = set()
         "*** YOUR CODE HERE ***"
 
     def getStartState(self):
@@ -315,9 +314,10 @@ class CornersProblem(search.SearchProblem):
         Returns whether this search state is a goal state of the problem.
         """
         "*** YOUR CODE HERE ***"
-        
         if not state[1]:
             return True
+
+
 
     def getActions(self, state):
         """
@@ -349,15 +349,15 @@ class CornersProblem(search.SearchProblem):
 
         "*** YOUR CODE HERE ***"
         x,y = state[0]
+        corners = state[1]
+        newCorners = []
         dx, dy = Actions.directionToVector(action)
         nextx, nexty = int(x + dx), int(y + dy)
         if (not self.walls[nextx][nexty]):
-            corners = list(state[1])
-            newCorner = []
             for corner in corners:
                 if corner != (nextx, nexty):
-                    newCorner.insert(0, corner)
-            return ((nextx, nexty), newCorner)
+                    newCorners.append(corner)
+            return ((nextx, nexty), newCorners)
         else:
             warnings.warn("Warning: checking the result of an invalid state, action pair.")
             return state
@@ -401,20 +401,17 @@ def cornersHeuristic(state, problem):
     walls = problem.walls # These are the walls of the maze, as a Grid (game.py)
 
     "*** YOUR CODE HERE ***"
-    def Euclidean(location1, location2):
-        return math.pow(location2[1]-location1[1],2) + math.pow(location2[0]-location1[0],2)
+    def heuristic(location1, location2):
+        return abs(location2[1]-location1[1]) + abs(location2[0]-location1[0])
     curState = state[0]
-    print (curState)
     curCorner = state[1]
-    curVisited = state[2]
     h = []
     for corner in curCorner:
-        if corner not in curVisited:
-            h.append(Euclidean(curState, corner))
+        h.append(heuristic(curState, corner))
     if not h:
         return 0
     else:
-        return min(h)
+        return max(h)
 
 class AStarCornersAgent(SearchAgent):
     "A SearchAgent for FoodSearchProblem using A* and your foodHeuristic"
@@ -536,8 +533,19 @@ def foodHeuristic(state, problem):
     problem.heuristicInfo['wallCount']
     """
     position, foodGrid = state
-    "*** YOUR CODE HERE ***"
-    return 0
+    foods = foodGrid.asList()
+    def heuristic(location1, location2):
+        return abs(location2[1]-location1[1]) + abs(location2[0]-location1[0])
+    def euclidean(location1, location2):
+        return math.sqrt((math.pow(location2[1]-location1[1],2)) + math.pow(location2[0]-location1[0],2))
+    h = {}
+    for food in foods:
+        h[heuristic(food, position)] = food
+    if not h:
+        return 0
+    else:
+        return mazeDistance(position, h[max(h)], problem.startingGameState)
+
 
 def mazeDistance(point1, point2, gameState):
     """
